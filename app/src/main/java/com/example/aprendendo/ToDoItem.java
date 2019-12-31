@@ -4,6 +4,14 @@ public class ToDoItem {
     private String nome;
     private String descricao;
 
+    public ToDoItem (String nome, String descricao){
+        this.nome = nome;
+        this.descricao = descricao;
+    }
+
+    public ToDoItem (){
+    }
+
     public String getNome() {
         return nome;
     }
@@ -19,4 +27,7 @@ public class ToDoItem {
     public void setNome(String nome) {
         this.nome = nome;
     }
+
+
+
 }
