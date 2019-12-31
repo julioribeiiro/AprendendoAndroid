@@ -1,5 +1,8 @@
 package com.example.aprendendo;
 
+import android.content.Context;
+import android.content.Intent;
+import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -40,9 +43,7 @@ public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.ViewHo
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {//coloca dados dentro da view
-        holder.description.setText(nomes.get(position).getDescricao());
         holder.name.setText(nomes.get(position).getNome());
-
 
     }
 
@@ -63,24 +64,26 @@ public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.ViewHo
 
             imageView = itemView.findViewById(R.id.imageView);
             name = itemView.findViewById(R.id.name);
-            description = itemView.findViewById(R.id.description);
 
             itemView.setOnClickListener(this);
 
-            itemView.setOnLongClickListener(new View.OnLongClickListener() {
-                @Override
-                public boolean onLongClick(View view) {
-                    nomes.remove(getAdapterPosition());
-                    notifyDataSetChanged();
 
-                    return true;
-                }
-            });
         }
 
         @Override
         public void onClick(View view) {
-            Toast.makeText(view.getContext(), nomes.get(getAdapterPosition()).getNome(), Toast.LENGTH_LONG).show();
+            ToDoItem toDoItem = nomes.get(getAdapterPosition());
+
+
+            Context context = view.getContext();
+            Intent intent = new Intent(context, descricao.class);
+
+            Bundle b = new Bundle();
+            b.putString("description", toDoItem.getDescricao());//PASSANDO DESCRICAO COMO PARAMETRO PARA A NOVA ACTIVITY
+            b.putString("title", toDoItem.getNome());
+            intent.putExtras(b);
+
+            context.startActivity(intent);
         }
     }
 }

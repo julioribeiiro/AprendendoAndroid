@@ -13,6 +13,7 @@ import android.icu.lang.UCharacter;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.Toast;
 
 import com.google.android.material.snackbar.Snackbar;
 
@@ -31,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
     EditText entryDescricao;
 
     List<ToDoItem> nomes;
+    ToDoDao dao;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,28 +44,25 @@ public class MainActivity extends AppCompatActivity {
         entryDescricao = findViewById(R.id.entryDescription);
         recyclerView = findViewById(R.id.recyclerView);
         nomes = new ArrayList<>();
-        nomes.add(new ToDoItem("Visitar Europa", "Em Janeiro"));
-        nomes.add(new ToDoItem("Progamar AndroidStudio", "Para Estagio"));
-        nomes.add(new ToDoItem("Going London", "Dia 17"));
-        nomes.add(new ToDoItem("Planejar Viagem", "Procurar lugares para ir em Londres"));
-        nomes.add(new ToDoItem("Descansar", "Aproveitar viagem parar tirar ferias"));
+        dao = new ToDoDao(this);
 
+        nomes = dao.receiveAll();//-- PEGA TODOS OS ToDos DO BANCO DE DADOS
 
-        recyclerAdapter = new RecyclerAdapter(nomes);
+        recyclerAdapter = new RecyclerAdapter(nomes);//----ATUALIZA O NO RECYCLERVIEW COM OS DADOS RECEBIDOS
 
        // recyclerView.setLayoutManager(new LinearLayoutManager(this)); nao eh necessario pq ja ta declarado no xml
 
-        recyclerView.setAdapter(recyclerAdapter); //setando o adapter
+        recyclerView.setAdapter(recyclerAdapter); //CRIANDO O ADAPTER DO RECYCLERVIEW
 
-        DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(this, DividerItemDecoration.VERTICAL);
-        recyclerView.addItemDecoration(dividerItemDecoration);
+        DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(this, DividerItemDecoration.VERTICAL);//COLOCA LINHAS DE SEPARACAO
+        recyclerView.addItemDecoration(dividerItemDecoration);//----------------------------------------------------------------NO RECYCLERVIEW
 
-        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(simpleCallback);
-        itemTouchHelper.attachToRecyclerView(recyclerView);
+        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(simpleCallback);//CRIANDO O ITEMTOUCHHELPER PARA O SWIPE
+        itemTouchHelper.attachToRecyclerView(recyclerView);//CONECTANDO O ITEM TOUCH HELPER COM O RECYCLERVIEW
 
     }
 
-    ItemTouchHelper.SimpleCallback simpleCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+    ItemTouchHelper.SimpleCallback simpleCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
         @Override
         public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
             return false;
@@ -72,16 +71,18 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onSwiped(@NonNull final RecyclerView.ViewHolder viewHolder, int direction) {
             final int position = viewHolder.getAdapterPosition();
-            if (direction == ItemTouchHelper.LEFT){
-                final ToDoItem removedItem = nomes.get(position);
-                nomes.remove(viewHolder.getAdapterPosition());
-                recyclerAdapter.notifyDataSetChanged();
-                Snackbar.make(recyclerView, removedItem.getNome(), Snackbar.LENGTH_LONG)
-                        .setAction("UNDO", new View.OnClickListener() {
+            if (direction == ItemTouchHelper.LEFT){//-------------------------------------SE FIZER SWIPE PRA ESQUERDA
+                final ToDoItem removedItem = nomes.get(position);//----------------------SALVA OBJETO QUE VAI SER REMOVIDO NUMA VARIAVEL AUXILIAR
+                nomes.remove(position);//----------------------------------------------REMOVE O OBJETO DA LISTA
+                recyclerAdapter.notifyDataSetChanged();//----------------------------------FAZ A ATUALIZACAO DO RECYCLERVIEW NO APP
+                dao.removeToDo(removedItem);
+                Snackbar.make(recyclerView, removedItem.getNome(), Snackbar.LENGTH_LONG)//COMECA PROPRIEDADE DE DESFAZER A REMOCAO
+                        .setAction("UNDO", new View.OnClickListener() {//-----------ACAO UNDO
                             @Override
-                            public void onClick(View view) {
-                                nomes.add(position, removedItem);
-                                recyclerAdapter.notifyDataSetChanged();
+                            public void onClick(View view) {//-----------------------ACAO DE QUANDO EH CLICADO
+                                nomes.add(position, removedItem);//-----------------ADICIONA O ITEM QUE FOI REMOVIDO NA MESMA POSICAO DE ONDE FOI RETIRADO
+                                recyclerAdapter.notifyDataSetChanged();//----------ATUALIZA O RECYCLERVIEW DO APP
+                                dao.insertToDoWithId(removedItem);//------RECRIA NO BANCO DE DADOS NA MESMA POSUCAO QUE ESTAVA
                             }
                         }).show();
 
@@ -95,30 +96,32 @@ public class MainActivity extends AppCompatActivity {
         public void onChildDraw(@NonNull Canvas c, @NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, float dX, float dY, int actionState, boolean isCurrentlyActive) {
 
             new RecyclerViewSwipeDecorator.Builder(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
-                    .addSwipeLeftBackgroundColor(ContextCompat.getColor(MainActivity.this, R.color.colorAccent))
-                    .addSwipeLeftActionIcon(R.drawable.delete)
+                    .addSwipeLeftBackgroundColor(ContextCompat.getColor(MainActivity.this, R.color.colorAccent))//COLOCA COR DE FUNDO NO SWIPE
+                    .addSwipeLeftActionIcon(R.drawable.delete)//----COLOCA ICONE DE LIXEIRA DA PASTA DRAWABLE
                     .create()
                     .decorate();
 
 
             super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive);
         }
+
     };
+
+
+    public void onCLickItem(ToDoItem item){
+        Toast.makeText(this, item.getDescricao(), Toast.LENGTH_LONG).show();
+    }
 
 
 
 
     public void InsereTarefa(View view) {
-        //nomes.add(entryNome.getText().toString());
-        //recyclerAdapter.notifyDataSetChanged();
-        //entryNome.setText("");
-        ToDoItem novo = new ToDoItem();
-        novo.setNome(entryNome.getText().toString());
-        novo.setDescricao(entryDescricao.getText().toString());
-        nomes.add(novo);
-        entryNome.setText("");
-        entryDescricao.setText("");
-        recyclerAdapter.notifyDataSetChanged();
-
+        ToDoItem novo = new ToDoItem(entryNome.getText().toString(), entryDescricao.getText().toString());//CRIA UMA NOVA TAREFA
+        nomes.add(novo);// INSERE NO ARRAY NOMES
+        entryNome.setText("");//---------------------RESETA O CAMPO DE TEXTO NOME
+        entryDescricao.setText("");//----------------RESETA O CAMPO DE TEXTO DESCRICAO
+        recyclerAdapter.notifyDataSetChanged();//-----FAZ A ALTERACAO NO RECYCLERVIEW DO APP
+        long id = dao.insertToDo(novo);
+        Toast.makeText(this, "ToDoInserido id: "+id, Toast.LENGTH_LONG).show();
     }
 }
